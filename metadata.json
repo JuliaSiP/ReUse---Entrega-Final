@@ -1,0 +1,9 @@
+{
+  "name": "ReUse",
+  "description": "Collaborative digital platform for product exchange, encouraging conscious consumption and urban sustainability through gamification and AI support.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}

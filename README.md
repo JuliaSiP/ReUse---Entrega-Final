@@ -1,11 +1,83 @@
-<div align="center">
+# 🌿 ReUse - Plataforma de Economia Circular
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+**ReUse** é uma solução digital colaborativa que promove a troca sustentável de produtos entre moradores urbanos. Inspirada nos princípios da economia circular, a plataforma transforma o "lixo" de uns em valor para outros, reduzindo o desperdício e fortalecendo os laços comunitários através da tecnologia.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 🚀 Visão Geral
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+A plataforma foi desenvolvida para resolver o problema de produtos parados em casa e o descarte excessivo em centros urbanos. Através de um sistema de gamificação e uma interface intuitiva, o ReUse incentiva os usuários a trocarem itens em vez de comprarem novos, promovendo um estilo de vida mais consciente.
 
-</div>
+## ✨ Funcionalidades Principais
+
+### 📍 Geolocalização Inteligente
+A plataforma utiliza a localização do usuário para sugerir trocas que estão acontecendo no seu bairro, minimizando a pegada de carbono do transporte e incentivando a sustentabilidade local.
+
+### 🤖 EcoBot (IA Sustentável)
+Integrado com a **API do Google Gemini**, o EcoBot é um assistente virtual especializado que:
+- Dá dicas de como reciclar produtos específicos.
+- Explica o funcionamento do sistema de pontos.
+- Incentiva práticas sustentáveis com sugestões personalizadas.
+
+### 🎮 Gamificação e Recompensas
+Cada troca gera **Pontos ReUse** e aumenta o **Nível Sustentável** do usuário. Isso cria um ciclo virtuoso onde a colaboração é recompensada com status e impacto ambiental visível.
+
+### 🔍 Exploração e Filtros
+Sistema avançado de filtros por categoria (Eletrônicos, Móveis, Livros, etc.) e cálculo de distância em tempo real para facilitar o encontro do item perfeito.
+
+### 🔐 Segurança com Firebase
+- **Autenticação**: Login seguro via Google.
+- **Real-time**: Atualização instantânea de novos itens e solicitações de troca via Firestore.
+- **Regras de Segurança**: Proteção rigorosa de dados de usuário e transações.
+
+---
+
+## 🛠️ Stack Tecnológica
+
+- **Frontend**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Estilização**: [Tailwind CSS 4](https://tailwindcss.com/) (Design Moderno & Responsivo)
+- **Animações**: [Framer Motion](https://www.framer.com/motion/)
+- **Backend/DB**: [Firebase](https://firebase.google.com/) (Auth, Firestore)
+- **Inteligência Artificial**: [Google Gemini API](https://ai.google.dev/) (@google/genai)
+- **Ícones**: [Lucide React](https://lucide.dev/)
+
+---
+
+## 📁 Estrutura do Projeto
+
+```text
+├── src/
+│   ├── components/       # Componentes de UI reutilizáveis
+│   ├── lib/              # Utilitários e configurações (Firebase, Utils)
+│   ├── services/         # Integrações com APIs externas (Gemini)
+│   ├── App.tsx           # Componente principal e lógica de rotas
+│   ├── index.css         # Variáveis de tema e estilos globais
+│   └── main.tsx          # Ponto de entrada da aplicação
+├── firebase-blueprint.json # Definição da estrutura de dados do banco
+├── firestore.rules       # Regras de segurança do banco de dados
+├── metadata.json         # Metadados da aplicação e permissões
+└── package.json          # Dependências e scripts
+```
+
+---
+
+## 🎨 Identidade Visual
+
+O design do ReUse segue uma estética **Swiss Modern**, focada em tipografia clara e layout "Bento Grid".
+- **Tipografia**: *Inter* para funcionalidade e *Playfair Display* para elegância editorial.
+- **Paleta**: Tons de terra (`#5A5A40`), pretos profundos e brancos neutros para passar uma sensação de sobriedade e natureza.
+
+---
+
+## 🛠️ Como Utilizar (Demo)
+
+1. **Acesse a plataforma** e faça login com sua conta Google.
+2. **Verifique seu Perfil**: Você começará com 100 pontos iniciais.
+3. **Explore Itens**: Use a aba "Explorar" para ver o que há perto de você.
+4. **Anuncie**: Clique no botão `+` para listar um item que você não usa mais.
+5. **EcoBot**: Use o ícone de mensagem no canto inferior para tirar dúvidas sobre sustentabilidade.
+
+---
+
+*Desenvolvido como parte do projeto de evolução tecnológica para o fomento da sustentabilidade urbana.*

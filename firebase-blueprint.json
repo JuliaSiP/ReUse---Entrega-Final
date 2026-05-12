@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "points": { "type": "integer" },
+        "level": { "type": "integer" },
+        "bio": { "type": "string" },
+        "location": { 
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Item": {
+      "title": "Item",
+      "description": "Product listed for exchange",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "condition": { "type": "string", "enum": ["New", "Like New", "Good", "Fair"] },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["available", "pending", "exchanged", "archived"] },
+        "pointsValue": { "type": "integer" },
+        "location": { 
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "status"]
+    },
+    "ExchangeRequest": {
+      "title": "ExchangeRequest",
+      "description": "Request to exchange an item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requesterId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "itemId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["requesterId", "ownerId", "itemId", "status"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time message between users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "exchangeId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["exchangeId", "senderId", "text"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "items": {
+      "schema": "Item",
+      "description": "Products for exchange"
+    },
+    "exchanges": {
+      "schema": "ExchangeRequest",
+      "description": "Exchange transactions"
+    },
+    "exchanges/{exchangeId}/messages": {
+      "schema": "ChatMessage",
+      "description": "Chat messages for a specific exchange"
+    }
+  }
+}

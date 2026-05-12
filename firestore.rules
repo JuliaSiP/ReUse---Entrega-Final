@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // --- User Rules ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'points', 'level']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email == request.auth.token.email &&
+             data.points is int && data.level is int;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidUser(incoming()) && incoming().points == 0 && incoming().level == 1;
+      allow update: if isSignedIn() && userId == request.auth.uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'photoURL', 'bio']) &&
+                    incoming().name is string && incoming().name.size() <= 100;
+    }
+
+    // --- Item Rules ---
+    function isValidItem(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'status', 'pointsValue', 'createdAt']) &&
+             data.ownerId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.status in ['available', 'pending', 'exchanged', 'archived'] &&
+             data.pointsValue is int &&
+             data.createdAt == request.time;
+    }
+
+    match /items/{itemId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isEmailVerified() && isValidItem(incoming());
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid &&
+                    (
+                      // Action: Edit details
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'condition', 'images', 'pointsValue']) ||
+                      // Action: Change status
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+                    );
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    // --- Exchange Rules ---
+    function isValidExchange(data) {
+      return data.keys().hasAll(['requesterId', 'ownerId', 'itemId', 'status', 'createdAt']) &&
+             data.requesterId == request.auth.uid &&
+             data.status == 'pending' &&
+             data.createdAt == request.time &&
+             exists(/databases/$(database)/documents/items/$(data.itemId));
+    }
+
+    match /exchanges/{exchangeId} {
+      allow read: if isSignedIn() && (resource.data.requesterId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      allow create: if isSignedIn() && isEmailVerified() && isValidExchange(incoming());
+      allow update: if isSignedIn() && (
+        // Requester actions
+        (existing().requesterId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status']) && incoming().status == 'cancelled') ||
+        // Owner actions
+        (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasAll(['status', 'updatedAt']) && 
+         incoming().status in ['accepted', 'rejected', 'completed'] && incoming().updatedAt == request.time)
+      );
+    }
+
+    // --- Chat Rules ---
+    match /exchanges/{exchangeId}/messages/{messageId} {
+      allow read: if isSignedIn() && (
+        get(/databases/$(database)/documents/exchanges/$(exchangeId)).data.requesterId == request.auth.uid ||
+        get(/databases/$(database)/documents/exchanges/$(exchangeId)).data.ownerId == request.auth.uid
+      );
+      allow create: if isSignedIn() && 
+                    (get(/databases/$(database)/documents/exchanges/$(exchangeId)).data.requesterId == request.auth.uid ||
+                     get(/databases/$(database)/documents/exchanges/$(exchangeId)).data.ownerId == request.auth.uid) &&
+                    incoming().senderId == request.auth.uid &&
+                    incoming().text is string && incoming().text.size() <= 1000 &&
+                    incoming().createdAt == request.time;
+    }
+  }
+}
