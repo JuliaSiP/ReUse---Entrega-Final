@@ -83,62 +83,21 @@ export default function App() {
         (pos) => {
           setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
-        (err) => console.warn("Geolocation error:", err)
+        () => setUserLocation({ lat: -23.5505, lng: -46.6333 }) // Default to São Paulo
       );
     }
-
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const userRef = doc(db, 'users', u.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          const newUser: DbUser = {
-            uid: u.uid,
-            name: u.displayName || 'Usuário',
-            email: u.email || '',
-            photoURL: u.photoURL || '',
-            points: 100, // Give some starting points
-            level: 1,
-            bio: ''
-          };
-          await setDoc(userRef, newUser);
-          setDbUser(newUser);
-        } else {
-          setDbUser(userSnap.data() as DbUser);
-        }
-      } else {
-        setDbUser(null);
-      }
-    });
-    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setItems([]);
-      return;
-    }
-
-    const q = query(collection(db, 'items'), where('status', '==', 'available'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let newItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item));
-      
-      // Calculate distances if possible
-      if (userLocation) {
-        newItems = newItems.map(item => {
-          if (item.location) {
-            const dist = calculateDistance(userLocation.lat, userLocation.lng, item.location.lat, item.location.lng);
-            return { ...item, distance: dist };
-          }
-          return item;
-        }).sort((a, b) => (a.distance || 999) - (b.distance || 999));
-      }
-
-      setItems(newItems);
-    });
-    return unsubscribe;
-  }, [user, userLocation]);
+    // Populate demo items if none exist
+    const demoItems: Item[] = [
+      { id: '1', ownerId: 'demo1', title: 'Monitor Dell 24"', description: 'Excelente estado, 75Hz.', category: 'Eletrônicos', condition: 'Like New', pointsValue: 150, status: 'available', images: [], createdAt: null, distance: 1.2 },
+      { id: '2', ownerId: 'demo2', title: 'Cadeira de Escritório', description: 'Ergonômica, regulável.', category: 'Móveis', condition: 'Good', pointsValue: 100, status: 'available', images: [], createdAt: null, distance: 2.5 },
+      { id: '3', ownerId: 'demo3', title: 'Livro: O Hobbit', description: 'Edição de colecionador.', category: 'Livros', condition: 'New', pointsValue: 20, status: 'available', images: [], createdAt: null, distance: 0.8 },
+      { id: '4', ownerId: 'demo4', title: 'Jaqueta de Couro', description: 'Tamanho G, preta.', category: 'Vestuário', condition: 'Good', pointsValue: 80, status: 'available', images: [], createdAt: null, distance: 3.4 },
+    ];
+    setItems(demoItems);
+  }, []);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Radius of the earth in km
@@ -150,39 +109,6 @@ export default function App() {
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return parseFloat((R * c).toFixed(1));
-  };
-
-  const seedDemoData = async () => {
-    if (!user) return;
-    const demoItems = [
-      { title: 'Monitor Dell 24"', category: 'Eletrônicos', condition: 'Like New', pointsValue: 150, latOffset: 0.01, lngOffset: 0.01 },
-      { title: 'Cadeira de Escritório', category: 'Móveis', condition: 'Good', pointsValue: 100, latOffset: -0.015, lngOffset: 0.012 },
-      { title: 'Livro: O Hobbit', category: 'Livros', condition: 'New', pointsValue: 20, latOffset: 0.005, lngOffset: -0.008 },
-      { title: 'Jaqueta de Couro', category: 'Vestuário', condition: 'Good', pointsValue: 80, latOffset: -0.002, lngOffset: -0.01 },
-      { title: 'Kit de Ferramentas', category: 'Ferramentas', condition: 'Fair', pointsValue: 50, latOffset: 0.02, lngOffset: -0.02 },
-      { title: 'Vaso Decorativo', category: 'Decoração', condition: 'Like New', pointsValue: 30, latOffset: -0.01, lngOffset: 0.005 },
-    ];
-
-    const batch = demoItems.map(item => {
-      const itemRef = doc(collection(db, 'items'));
-      return setDoc(itemRef, {
-        title: item.title,
-        category: item.category,
-        condition: item.condition,
-        pointsValue: item.pointsValue,
-        ownerId: 'demo_user',
-        status: 'available',
-        images: [],
-        createdAt: serverTimestamp(),
-        location: userLocation ? { 
-          lat: userLocation.lat + item.latOffset, 
-          lng: userLocation.lng + item.lngOffset 
-        } : null
-      });
-    });
-
-    await Promise.all(batch);
-    alert('Dados de demonstração adicionados!');
   };
 
   const handleCreateItem = async () => {
@@ -197,7 +123,15 @@ export default function App() {
         createdAt: serverTimestamp(),
         location: userLocation
       };
-      await setDoc(doc(itemsRef), itemData);
+      // In demo mode we still try to save to DB if connected, but we also update local state
+      try {
+        await setDoc(doc(itemsRef), itemData);
+      } catch (err) {
+        console.warn("DB write failed in demo mode, but that's okay.");
+      }
+      
+      const newItemWithId = { id: Math.random().toString(36).substr(2, 9), ...itemData, distance: 0 } as Item;
+      setItems(prev => [newItemWithId, ...prev]);
       setIsCreateItemOpen(false);
       setNewItem({ title: '', description: '', category: 'Geral', condition: 'New', pointsValue: 10 });
     } catch (err) {
@@ -228,39 +162,27 @@ export default function App() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    if (!email || !password) return;
 
-    try {
-      if (isRegistering) {
-        if (!name) {
-          setAuthError('Por favor, informe seu nome.');
-          return;
-        }
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
-        
-        // Initial profile creation
-        const userRef = doc(db, 'users', userCredential.user.uid);
-        const newUser: DbUser = {
-          uid: userCredential.user.uid,
-          name: name,
-          email: email,
-          photoURL: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${userCredential.user.uid}`,
-          points: 100,
-          level: 1,
-          bio: ''
-        };
-        await setDoc(userRef, newUser);
-        setDbUser(newUser);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-    } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/email-already-in-use') setAuthError('Este email já está em uso.');
-      else if (err.code === 'auth/invalid-credential') setAuthError('Email ou senha incorretos.');
-      else setAuthError('Ocorreu um erro ao entrar.');
-    }
+    // DEMO MODE: Simply set a mock user and move forward
+    const mockUser = {
+      uid: 'demo_user_123',
+      displayName: name || 'Visitante',
+      email: email || 'demo@reuse.com',
+      photoURL: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${name || 'demo'}`
+    };
+
+    const mockDbUser: DbUser = {
+      uid: mockUser.uid,
+      name: mockUser.displayName,
+      email: mockUser.email,
+      photoURL: mockUser.photoURL,
+      points: 450,
+      level: 4,
+      bio: 'Sou um usuário entusiasta da sustentabilidade urbana!'
+    };
+
+    setUser(mockUser as any);
+    setDbUser(mockDbUser);
   };
 
   if (!user) {
