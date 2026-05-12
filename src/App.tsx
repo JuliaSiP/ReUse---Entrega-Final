@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { auth, db, signInWithGoogle, testConnection } from './lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth, db, testConnection, signInWithEmailAndPassword, createUserWithEmailAndPassword } from './lib/firebase';
+import { onAuthStateChanged, User, updateProfile } from 'firebase/auth';
 import { collection, query, where, onSnapshot, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   Recycle, 
@@ -17,7 +17,10 @@ import {
   Leaf,
   LogOut,
   ShoppingBag,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Mail,
+  Lock,
+  User as UserLucide
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
@@ -65,6 +68,11 @@ export default function App() {
   const [newItem, setNewItem] = useState({ title: '', description: '', category: 'Geral', condition: 'New', pointsValue: 10 });
   const [selectedCategory, setSelectedCategory] = useState('Tudo');
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     testConnection();
@@ -217,35 +225,132 @@ export default function App() {
     }
   };
 
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    if (!email || !password) return;
+
+    try {
+      if (isRegistering) {
+        if (!name) {
+          setAuthError('Por favor, informe seu nome.');
+          return;
+        }
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName: name });
+        
+        // Initial profile creation
+        const userRef = doc(db, 'users', userCredential.user.uid);
+        const newUser: DbUser = {
+          uid: userCredential.user.uid,
+          name: name,
+          email: email,
+          photoURL: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${userCredential.user.uid}`,
+          points: 100,
+          level: 1,
+          bio: ''
+        };
+        await setDoc(userRef, newUser);
+        setDbUser(newUser);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') setAuthError('Este email já está em uso.');
+      else if (err.code === 'auth/invalid-credential') setAuthError('Email ou senha incorretos.');
+      else setAuthError('Ocorreu um erro ao entrar.');
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-[#f5f5f0] flex flex-col items-center justify-center p-6 text-[#1a1a1a]">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white rounded-[32px] p-8 shadow-xl text-center space-y-8"
+          className="max-w-md w-full bg-white rounded-[32px] p-8 shadow-xl text-center space-y-6"
         >
           <div className="flex justify-center">
             <div className="p-4 bg-[#5A5A40] rounded-full text-white">
               <Recycle size={48} />
             </div>
           </div>
-          <div className="space-y-4">
+          
+          <div className="space-y-2">
             <h1 className="text-4xl font-serif font-light leading-tight">ReUse</h1>
-            <p className="text-[#5A5A40] font-medium tracking-wide uppercase text-xs">
+            <p className="text-[#5A5A40] font-medium tracking-wide uppercase text-[10px]">
               Sustentabilidade Urbana & Consumo Consciente
             </p>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              Transforme produtos parados em novas oportunidades. Troque, colabore e ganhe pontos por suas escolhas sustentáveis.
-            </p>
           </div>
-          <button 
-            onClick={signInWithGoogle}
-            className="w-full bg-[#1a1a1a] text-white rounded-full py-4 font-medium transition-all hover:bg-[#333] hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-3"
-          >
-            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 invert" />
-            Entrar com Google
-          </button>
+
+          <form onSubmit={handleAuth} className="space-y-4 text-left">
+            {isRegistering && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-gray-400 ml-4">Nome Completo</label>
+                <div className="relative">
+                  <UserLucide className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Seu nome"
+                    className="w-full bg-[#f5f5f0] rounded-full py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-[#5A5A40]/20"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-gray-400 ml-4">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="email" 
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="exemplo@email.com"
+                  className="w-full bg-[#f5f5f0] rounded-full py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-[#5A5A40]/20"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-gray-400 ml-4">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#f5f5f0] rounded-full py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-[#5A5A40]/20"
+                />
+              </div>
+            </div>
+
+            {authError && (
+              <p className="text-red-500 text-xs text-center font-medium">{authError}</p>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full bg-[#1a1a1a] text-white rounded-full py-4 font-medium transition-all hover:bg-[#333] hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+            >
+              {isRegistering ? 'Criar Conta' : 'Entrar'}
+            </button>
+          </form>
+
+          <p className="text-gray-500 text-sm">
+            {isRegistering ? 'Já tem uma conta?' : 'Ainda não tem conta?'} 
+            <button 
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setAuthError('');
+              }}
+              className="text-[#5A5A40] font-bold ml-1 hover:underline"
+            >
+              {isRegistering ? 'Faça Login' : 'Cadastre-se'}
+            </button>
+          </p>
         </motion.div>
       </div>
     );
@@ -281,9 +386,9 @@ export default function App() {
             </div>
             <button 
               onClick={() => setView('profile')}
-              className="w-10 h-10 rounded-full border-2 border-[#5A5A40] p-0.5 hover:scale-110 transition-transform"
+              className="w-10 h-10 rounded-full border-2 border-[#5A5A40] p-0.5 hover:scale-110 transition-transform overflow-hidden"
             >
-              <img src={user.photoURL || ''} alt="" className="w-full h-full rounded-full" />
+              <img src={dbUser?.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`} alt="" className="w-full h-full rounded-full object-cover" />
             </button>
             <button onClick={() => auth.signOut()} className="text-gray-400 hover:text-red-500 transition-colors">
               <LogOut size={20} />
@@ -543,7 +648,7 @@ export default function App() {
               className="max-w-2xl mx-auto bg-white rounded-[40px] p-12 shadow-sm space-y-8"
             >
                <div className="flex items-center gap-6">
-                 <img src={user.photoURL || ''} className="w-24 h-24 rounded-[32px] object-cover border-4 border-[#f5f5f0]" />
+                 <img src={dbUser?.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`} className="w-24 h-24 rounded-[32px] object-cover border-4 border-[#f5f5f0]" />
                  <div>
                    <h2 className="text-3xl font-serif">{dbUser?.name}</h2>
                    <p className="text-gray-500">{dbUser?.email}</p>

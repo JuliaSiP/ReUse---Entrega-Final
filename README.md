@@ -70,6 +70,21 @@ O design do ReUse segue uma estética **Swiss Modern**, focada em tipografia cla
 
 ---
 
+## 🚀 Como Fazer Deploy no Vercel
+
+O projeto está configurado para um deploy simples no Vercel:
+
+1. **Importe o Repositório**: Conecte seu GitHub/GitLab ao Vercel.
+2. **Configurações de Build**:
+   - **Framework Preset**: Vite (detectado automaticamente).
+   - **Root Directory**: `./` (raiz do projeto).
+3. **Variáveis de Ambiente**:
+   Você **DEVE** configurar as seguintes variáveis no painel do Vercel:
+   - `GEMINI_API_KEY`: Sua chave da API Google AI (obtenha em [Google AI Studio](https://aistudio.google.com/)).
+4. **Firebase**: O arquivo `firebase-applet-config.json` já contém as configurações do seu projeto Firebase. Certifique-se de que o **Email/Password Authentication** está ativado no console do seu Firebase.
+
+---
+
 ## 🛠️ Como Utilizar (Demo)
 
 1. **Acesse a plataforma** e faça login com sua conta Google.
