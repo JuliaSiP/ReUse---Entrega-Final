@@ -53,12 +53,26 @@ interface Item {
   createdAt: any;
 }
 
+interface Exchange {
+  id: string;
+  itemId: string;
+  itemName: string;
+  senderId: string;
+  senderName: string;
+  receiverId: string;
+  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  points: number;
+  type: 'incoming' | 'outgoing';
+  date: string;
+}
+
 const CATEGORIES = ['Tudo', 'Eletrônicos', 'Móveis', 'Livros', 'Vestuário', 'Esportes', 'Ferramentas', 'Decoração'];
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [dbUser, setDbUser] = useState<DbUser | null>(null);
   const [items, setItems] = useState<Item[]>([]);
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [view, setView] = useState<'home' | 'discover' | 'my-items' | 'exchanges' | 'profile' | 'rewards'>('home');
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model', text: string }[]>([]);
@@ -97,7 +111,24 @@ export default function App() {
       { id: '4', ownerId: 'demo4', title: 'Jaqueta de Couro', description: 'Tamanho G, preta.', category: 'Vestuário', condition: 'Good', pointsValue: 80, status: 'available', images: [], createdAt: null, distance: 3.4 },
     ];
     setItems(demoItems);
+
+    const demoExchanges: Exchange[] = [
+      { id: 'e1', itemId: '101', itemName: 'Fone de Ouvido Sony', senderId: 'user_x', senderName: 'Carlos Silva', receiverId: 'demo_user_123', status: 'pending', points: 45, type: 'incoming', date: 'Hoje, 14:20' },
+      { id: 'e2', itemId: '102', itemName: 'Mesa de Jantar', senderId: 'demo_user_123', senderName: 'Visitante', receiverId: 'user_y', status: 'accepted', points: 120, type: 'outgoing', date: 'Ontem, 09:15' },
+      { id: 'e3', itemId: '103', itemName: 'Smartphone G7', senderId: 'user_z', senderName: 'Ana Clara', receiverId: 'demo_user_123', status: 'completed', points: 300, type: 'incoming', date: '12 Maio, 18:30' },
+    ];
+    setExchanges(demoExchanges);
   }, []);
+
+  const seedDemoData = async () => {
+    // In demo mode, we just add more items to the local state
+    const moreDemoItems: Item[] = [
+      { id: 'd5', ownerId: 'demo5', title: 'Kit de Ferramentas', description: 'Completo, pouco uso.', category: 'Ferramentas', condition: 'Fair', pointsValue: 50, status: 'available', images: [], createdAt: null, distance: 4.1 },
+      { id: 'd6', ownerId: 'demo6', title: 'Vaso Decorativo', description: 'Cerâmica artesanal.', category: 'Decoração', condition: 'Like New', pointsValue: 30, status: 'available', images: [], createdAt: null, distance: 0.5 },
+    ];
+    setItems(prev => [...prev, ...moreDemoItems]);
+    alert('Dados de demonstração adicionados!');
+  };
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Radius of the earth in km
@@ -445,6 +476,79 @@ export default function App() {
                     <button onClick={() => setSelectedCategory('Tudo')} className="text-[#5A5A40] font-bold underline">Limpar Filtros</button>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          )}
+
+          {view === 'my-items' && (
+            <motion.div 
+              key="my-items"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-10"
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <h2 className="text-4xl font-serif">Meus Itens</h2>
+                  <p className="text-gray-500">Gerencie os itens que você disponibilizou para a comunidade.</p>
+                </div>
+                <button 
+                  onClick={() => setIsCreateItemOpen(true)}
+                  className="bg-[#5A5A40] text-white px-8 py-4 rounded-full font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all"
+                >
+                  Anunciar Novo <Plus size={20} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {items.filter(i => i.ownerId === user?.uid || i.ownerId === 'demo_user_123').map(item => (
+                  <ItemCard key={item.id} item={item} isOwner />
+                ))}
+                {items.filter(i => i.ownerId === user?.uid || i.ownerId === 'demo_user_123').length === 0 && (
+                  <div className="col-span-full py-20 text-center border-2 border-dashed border-gray-200 rounded-[40px] space-y-4">
+                    <ShoppingBag className="mx-auto text-gray-300" size={64} />
+                    <p className="text-xl font-serif text-gray-400">Você ainda não anunciou nenhum item.</p>
+                    <button onClick={() => setIsCreateItemOpen(true)} className="text-[#5A5A40] font-bold underline">Comece a contribuir hoje!</button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {view === 'exchanges' && (
+            <motion.div 
+              key="exchanges"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-10"
+            >
+              <div className="space-y-2">
+                <h2 className="text-4xl font-serif">Central de Trocas</h2>
+                <p className="text-gray-500">Acompanhe suas negociações em tempo real.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <ArrowRightLeft className="text-[#5A5A40]" size={20} /> Recebidas
+                  </h3>
+                  <div className="space-y-4">
+                    {exchanges.filter(e => e.type === 'incoming').map(exchange => (
+                      <ExchangeCard key={exchange.id} exchange={exchange} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <ArrowRightLeft className="text-[#5A5A40] rotate-180" size={20} /> Enviadas
+                  </h3>
+                  <div className="space-y-4">
+                    {exchanges.filter(e => e.type === 'outgoing').map(exchange => (
+                      <ExchangeCard key={exchange.id} exchange={exchange} />
+                    ))}
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -842,7 +946,12 @@ function StatCard({ icon, title, value, label }: { icon: React.ReactNode, title:
   );
 }
 
-function ItemCard({ item }: { item: Item }) {
+interface ItemCardProps {
+  item: Item;
+  isOwner?: boolean;
+}
+
+function ItemCard({ item, isOwner }: ItemCardProps) {
   return (
     <motion.div 
       whileHover={{ y: -5 }}
@@ -866,6 +975,11 @@ function ItemCard({ item }: { item: Item }) {
             </div>
           )}
         </div>
+        {isOwner && (
+          <div className="absolute top-4 right-4 bg-yellow-400 text-black px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+            Seu Item
+          </div>
+        )}
       </div>
       <div className="p-6 space-y-3">
         <div className="flex items-center justify-between">
@@ -876,11 +990,69 @@ function ItemCard({ item }: { item: Item }) {
           </div>
         </div>
         <h5 className="text-xl font-serif">{item.title}</h5>
-        <button className="w-full py-3 rounded-full border border-gray-200 text-sm font-medium hover:bg-[#1a1a1a] hover:text-white transition-all">
-          Solicitar Troca
+        <button className={cn(
+          "w-full py-3 rounded-full border border-gray-200 text-sm font-medium transition-all",
+          isOwner ? "bg-[#f5f5f0] text-gray-400 cursor-default" : "hover:bg-[#1a1a1a] hover:text-white"
+        )}>
+          {isOwner ? "Gerenciar Anúncio" : "Solicitar Troca"}
         </button>
       </div>
     </motion.div>
+  );
+}
+
+interface ExchangeCardProps {
+  exchange: Exchange;
+}
+
+function ExchangeCard({ exchange }: ExchangeCardProps) {
+  const statusColors = {
+    pending: "bg-yellow-100 text-yellow-700",
+    accepted: "bg-green-100 text-green-700",
+    declined: "bg-red-100 text-red-700",
+    completed: "bg-blue-100 text-blue-700"
+  };
+
+  const statusLabels = {
+    pending: "Pendente",
+    accepted: "Aceito",
+    declined: "Recusado",
+    completed: "Concluído"
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center gap-4 group hover:border-[#5A5A40]/30 transition-all">
+      <div className="w-16 h-16 bg-[#f5f5f0] rounded-2xl flex items-center justify-center shrink-0">
+        <ShoppingBag className="text-[#5A5A40]" size={24} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className={cn("px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest", statusColors[exchange.status])}>
+            {statusLabels[exchange.status]}
+          </span>
+          <span className="text-[10px] text-gray-400 font-medium">{exchange.date}</span>
+        </div>
+        <h4 className="text-lg font-serif mt-1 truncate">{exchange.itemName}</h4>
+        <p className="text-xs text-gray-500 truncate">
+          {exchange.type === 'incoming' ? `De: ${exchange.senderName}` : `Para: ${exchange.senderName}`}
+        </p>
+      </div>
+      <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-1 text-[#5A5A40] font-mono font-bold">
+          <Leaf size={14} fill="currentColor" /> {exchange.points}
+        </div>
+        {exchange.status === 'pending' && exchange.type === 'incoming' && (
+          <div className="flex gap-2">
+            <button className="p-2 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-colors">
+              <Plus size={16} />
+            </button>
+            <button className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors">
+              <Plus className="rotate-45" size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
